@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Index, { Dashboard, Login, MicroGoals, Onboarding, Premium, Projection, Rewards, Settings } from "./pages/Index";
+import { InvestmentPlans } from "./pages/InvestmentPlans";
+import { AdminPayments } from "./pages/AdminPayments";
 import { EmailVerification } from "./components/PulsePassFeatures";
 import NotFound from "./pages/NotFound";
 import { SavetripProvider } from "./lib/savetrip";
@@ -24,6 +26,8 @@ const App = () => (
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projection" element={<Projection />} />
+            <Route path="/plans" element={<InvestmentPlans />} />
+            <Route path="/admin/payments" element={<AdminPayments />} />
             <Route path="/micro-goals" element={<MicroGoals />} />
             <Route path="/rewards" element={<Rewards />} />
             <Route path="/premium" element={<Premium />} />
