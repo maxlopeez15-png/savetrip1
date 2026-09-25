@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CardLinkModal, CardList } from "@/components/PulsePassFeatures";
+import { PersonaImagePicker } from "@/components/PersonaImagePicker";
 import { useSavetrip } from "@/lib/savetrip";
 import { ArrowRight, Check, Crown, Sparkles } from "lucide-react";
 
@@ -9,6 +10,7 @@ export function AccountSettingsExtras() {
   const { user } = useSavetrip(); const [searchParams, setSearchParams] = useSearchParams(); const [showCard, setShowCard] = useState(false); const [showPremiumNotice, setShowPremiumNotice] = useState(false);
   useEffect(() => { if (searchParams.get("linkCard") === "1") { setShowCard(true); setSearchParams({}, { replace: true }); } }, [searchParams, setSearchParams]);
   return <>
+    <PersonaImagePicker />
     <div className="profile-strip"><div><p className="card-kicker text-teal">ACCOUNT PROFILE</p><strong>{user.email || "No email added"}</strong><span>Account email and membership status</span></div><button className="profile-edit-link" onClick={() => document.getElementById("financial-profile")?.scrollIntoView({ behavior: "smooth" })}>Edit financial profile <ArrowRight size={14} /></button></div>
     <div className="settings-extra-grid">
       <CardList onLink={() => setShowCard(true)} />
