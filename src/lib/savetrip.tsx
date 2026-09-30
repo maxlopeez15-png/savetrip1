@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-
 export type Persona = "Consistent Builder" | "Future Planner" | "Steady Starter" | "Ambitious Saver";
 export type LinkedCard = { id: string; provider?: "mercadopago"; providerPaymentMethodId?: string; brand: "Visa" | "Mastercard" | "Amex" | string; issuerId?: string; issuerName?: string; last4: string; type?: string; expirationMonth?: string; expirationYear?: string; verified?: boolean; status?: "verified" | "pending" | "rejected" };
 export type Contribution = { id: string; userId?: string; amount: number; currency: "MXN"; investmentPlanId: string; paymentMethodId?: string; paymentMethodBrand?: string; paymentMethodLast4?: string; providerTransactionId?: string; status: "pending" | "approved" | "rejected" | "cancelled" | "refunded"; createdAt: string };
@@ -9,7 +8,6 @@ export type UserProfile = {
   id: string;
   name: string;
   email: string;
-  password: string;
   isLoggedIn: boolean;
   emailVerified: boolean;
   onboardingCompleted: boolean;
@@ -96,52 +94,15 @@ export const BADGES: BadgeDefinition[] = [
 ];
 
 export const DEFAULT_USER: UserProfile = {
-  id: "demo-max", name: "Max", email: "max@pulsepass.demo", password: "demo1234", isLoggedIn: false, emailVerified: true, onboardingCompleted: true, quizAnswers: {}, age: 22, income: 48000, currentSavings: 15000, monthlyContribution: 2000, retirementAge: 65, retirementTarget: 5000000, expectedReturn: 7, persona: "Consistent Builder", personaImage: undefined, xp: 720, currentStreak: 12, longestStreak: 18, streakFreezes: 2, microGoalProgress: 750, completedMicroGoals: [250, 500], badges: ["first-deposit", "first-thousand", "streak-7", "projection-improved"], badgeDates: { "first-deposit": "2025-01-04", "first-thousand": "2025-02-12", "streak-7": "2025-02-28" }, linkedCards: [], investmentPlanId: "balanced", contributions: [], isPremium: false, settings: { notifications: true, theme: "mint", currency: "MXN" },
+  id: "demo-max", name: "Max", email: "max@pulsepass.demo", isLoggedIn: false, emailVerified: true, onboardingCompleted: true, quizAnswers: {}, age: 22, income: 48000, currentSavings: 15000, monthlyContribution: 2000, retirementAge: 65, retirementTarget: 5000000, expectedReturn: 7, persona: "Consistent Builder", personaImage: undefined, xp: 720, currentStreak: 12, longestStreak: 18, streakFreezes: 2, microGoalProgress: 750, completedMicroGoals: [250, 500], badges: ["first-deposit", "first-thousand", "streak-7", "projection-improved"], badgeDates: { "first-deposit": "2025-01-04", "first-thousand": "2025-02-12", "streak-7": "2025-02-28" }, linkedCards: [], investmentPlanId: "balanced", contributions: [], isPremium: false, settings: { notifications: true, theme: "mint", currency: "MXN" },
 };
 
-const STORAGE_KEY = "savetrip-user";
 export const formatMoney = (amount: number, compact = false) => { if (compact && amount >= 1000000) return `$${(amount / 1000000).toFixed(1)} M`; if (compact && amount >= 1000) return `$${Math.round(amount / 1000)} k`; return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(amount); };
 export const projectSavings = (current: number, monthly: number, age: number, retirementAge: number, annualReturn = 0.07) => { const months = Math.max(0, (retirementAge - age) * 12); const monthlyRate = annualReturn / 12; if (!monthlyRate) return current + monthly * months; return current * Math.pow(1 + monthlyRate, months) + monthly * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate); };
 export const getLevel = (xp: number) => LEVELS.reduce((current, level) => (xp >= level.min ? level : current), LEVELS[0]);
 export const getPersona = (answers: Record<string, string>): Persona => { if (answers.savingsStyle === "aggressive") return "Ambitious Saver"; if (answers.savingsStyle === "plan") return "Future Planner"; if (answers.savingsStyle === "steady") return "Consistent Builder"; return "Steady Starter"; };
 
-type SavetripContextValue = { user: UserProfile; updateUser: (updates: Partial<UserProfile>) => void; registerAccount: (name: string, email: string, password: string) => void; login: (email: string, password: string) => boolean; loginDemo: () => void; logout: () => void; verifyEmail: () => void; completeOnboarding: (updates: Partial<UserProfile>, quizAnswers: Record<string, string>) => void; addSavings: (amount: number) => { completed: number[]; leveledUp: boolean; xpEarned: number }; addConfirmedContribution: (contribution: Contribution) => { completed: number[]; leveledUp: boolean; xpEarned: number }; linkCard: (card: Omit<LinkedCard, "id">) => void; removeCard: (id: string) => void; activatePremium: () => void; useFreeze: () => boolean; resetDemo: () => void; };
-const normalizeUser = (stored: Partial<UserProfile> | null): UserProfile => ({ ...DEFAULT_USER, ...stored, quizAnswers: stored?.quizAnswers ?? {}, contributions: stored?.contributions ?? [], investmentPlanId: stored?.investmentPlanId ?? DEFAULT_USER.investmentPlanId, linkedCards: (stored?.linkedCards ?? []).map((card) => ({ ...card, verified: card.verified ?? true, status: card.status ?? "verified" })), badgeDates: stored?.badgeDates ?? DEFAULT_USER.badgeDates, settings: { ...DEFAULT_USER.settings, ...(stored?.settings ?? {}) } });
-const SavetripContext = createContext<SavetripContextValue | null>(null);
+export type SavetripContextValue = { user: UserProfile; authLoading: boolean; updateUser: (updates: Partial<UserProfile>) => void; registerAccount: (name: string, email: string, password: string) => Promise<{ error?: string; needsVerification?: boolean }>; login: (email: string, password: string) => Promise<{ error?: string; needsVerification?: boolean }>; logout: () => Promise<void>; resendVerification: (email: string) => Promise<{ error?: string; needsVerification?: boolean }>; checkVerification: () => Promise<boolean>; resetPassword: (email: string) => Promise<{ error?: string; needsVerification?: boolean }>; completeOnboarding: (updates: Partial<UserProfile>, quizAnswers: Record<string, string>) => void; addSavings: (amount: number) => { completed: number[]; leveledUp: boolean; xpEarned: number }; addConfirmedContribution: (contribution: Contribution) => { completed: number[]; leveledUp: boolean; xpEarned: number }; linkCard: (card: Omit<LinkedCard, "id">) => void; removeCard: (id: string) => void; activatePremium: () => void; useFreeze: () => boolean; resetDemo: () => void; uploadAvatar: (file: File) => Promise<{ error?: string }>; removeAvatar: () => Promise<{ error?: string }>; };
+export const SavetripContext = createContext<SavetripContextValue | null>(null);
 
-export function SavetripProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile>(() => { try { return normalizeUser(JSON.parse(localStorage.getItem(STORAGE_KEY) || "null")); } catch { return DEFAULT_USER; } });
-  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(user)); }, [user]);
-  const updateUser = (updates: Partial<UserProfile>) => setUser((current) => ({ ...current, ...updates }));
-  const registerAccount = (name: string, email: string, password: string) => setUser({ ...DEFAULT_USER, id: `account-${Date.now()}`, name, email: email.trim().toLowerCase(), password, isLoggedIn: true, onboardingCompleted: false, emailVerified: false, quizAnswers: {}, currentSavings: 0, monthlyContribution: 500, currentStreak: 0, longestStreak: 0, xp: 0, microGoalProgress: 0, completedMicroGoals: [], badges: [], badgeDates: {}, linkedCards: [], investmentPlanId: "balanced", contributions: [], isPremium: false });
-  const login = (email: string, password: string) => { if (user.email.toLowerCase() !== email.trim().toLowerCase() || user.password !== password) return false; setUser((current) => ({ ...current, isLoggedIn: true })); return true; };
-  const loginDemo = () => setUser((current) => ({ ...current, isLoggedIn: true, onboardingCompleted: true, emailVerified: true }));
-  const logout = () => setUser((current) => ({ ...current, isLoggedIn: false }));
-  const verifyEmail = () => setUser((current) => ({ ...current, emailVerified: true }));
-  const completeOnboarding = (updates: Partial<UserProfile>, quizAnswers: Record<string, string>) => setUser((current) => ({ ...current, ...updates, quizAnswers, onboardingCompleted: true, isLoggedIn: true }));
-  const addSavings = (amount: number) => {
-    let result = { completed: [] as number[], leveledUp: false, xpEarned: Math.max(10, Math.round(amount / 5)) };
-    setUser((current) => {
-      const previousLevel = getLevel(current.xp).level; const newProgress = current.microGoalProgress + amount;
-      const completed = MICRO_GOALS.filter((goal) => newProgress >= goal.target && !current.completedMicroGoals.includes(goal.target)).map((goal) => goal.target);
-      const xp = current.xp + result.xpEarned + completed.length * 50; const nextLevel = getLevel(xp).level; result = { completed, leveledUp: nextLevel > previousLevel, xpEarned: result.xpEarned + completed.length * 50 };
-      const nextStreak = current.currentStreak + 1; const nextSavings = current.currentSavings + amount; const nextCompleted = [...current.completedMicroGoals, ...completed];
-      const shouldUnlock = (badge: BadgeDefinition) => badge.category === "savings" ? (badge.id === "first-deposit" ? nextSavings > 0 : nextSavings >= badge.threshold) : badge.category === "streak" ? nextStreak >= badge.threshold : badge.category === "micro-goal" ? nextCompleted.length >= badge.threshold : badge.category === "xp" ? xp >= badge.threshold : badge.id === "momentum-builder" ? nextStreak >= badge.threshold : badge.id === "consistent-saver" ? nextStreak >= badge.threshold : badge.id === "future-focused" ? nextStreak >= badge.threshold : nextStreak >= badge.threshold;
-      const newBadgeIds = BADGES.filter((badge) => !current.badges.includes(badge.id) && shouldUnlock(badge)).map((badge) => badge.id); const today = new Date().toISOString().slice(0, 10); const badgeDates = { ...current.badgeDates }; newBadgeIds.forEach((id) => { badgeDates[id] = today; });
-      return { ...current, currentSavings: nextSavings, microGoalProgress: newProgress, completedMicroGoals: nextCompleted, xp, currentStreak: nextStreak, longestStreak: Math.max(current.longestStreak, nextStreak), badges: [...current.badges, ...newBadgeIds], badgeDates };
-    }); return result;
-  };
-  const addConfirmedContribution = (contribution: Contribution) => {
-    const result = addSavings(contribution.amount);
-    setUser((current) => ({ ...current, contributions: [...current.contributions, contribution] }));
-    return result;
-  };
-  const linkCard = (card: Omit<LinkedCard, "id">) => setUser((current) => ({ ...current, linkedCards: [...current.linkedCards, { ...card, id: `card-${Date.now()}` }] }));
-  const removeCard = (id: string) => setUser((current) => ({ ...current, linkedCards: current.linkedCards.filter((card) => card.id !== id) }));
-  const activatePremium = () => setUser((current) => ({ ...current, isPremium: true }));
-  const useFreeze = () => { if (user.streakFreezes <= 0) return false; setUser((current) => ({ ...current, streakFreezes: current.streakFreezes - 1 })); return true; };
-  const resetDemo = () => setUser(DEFAULT_USER);
-  const value = useMemo(() => ({ user, updateUser, registerAccount, login, loginDemo, logout, verifyEmail, completeOnboarding, addSavings, addConfirmedContribution, linkCard, removeCard, activatePremium, useFreeze, resetDemo }), [user]);
-  return <SavetripContext.Provider value={value}>{children}</SavetripContext.Provider>;
-}
 export const useSavetrip = () => { const context = useContext(SavetripContext); if (!context) throw new Error("useSavetrip must be used inside SavetripProvider"); return context; };

@@ -6,9 +6,9 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Index, { Dashboard, Login, MicroGoals, Onboarding, Premium, Projection, Rewards, Settings } from "./pages/Index";
 import { InvestmentPlans } from "./pages/InvestmentPlans";
 import { AdminPayments } from "./pages/AdminPayments";
-import { EmailVerification } from "./components/PulsePassFeatures";
+import { AuthCallback, EmailVerification, PasswordReset } from "./components/SupabaseAuthFlow";
 import NotFound from "./pages/NotFound";
-import { SavetripProvider } from "./lib/savetrip";
+import { SupabaseSavetripProvider } from "./lib/supabaseSavetrip";
 
 const queryClient = new QueryClient();
 
@@ -18,11 +18,13 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SavetripProvider>
+        <SupabaseSavetripProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/verify" element={<EmailVerification />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/reset-password" element={<PasswordReset />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projection" element={<Projection />} />
@@ -34,7 +36,7 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </SavetripProvider>
+        </SupabaseSavetripProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

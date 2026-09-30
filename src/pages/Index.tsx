@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { AccountSettingsExtras } from "@/components/AccountSettingsExtras";
 import { PersonaImagePicker, UserAvatar } from "@/components/PersonaImagePicker";
-import { AccountFlow, PremiumPreview } from "@/components/PulsePassFeatures";
+import { PremiumPreview } from "@/components/PulsePassFeatures";
+import { AccountFlow } from "@/components/SupabaseAuthFlow";
 import { ContributionModal } from "@/components/PaymentFeatures";
 import { BADGES, getLevel, getPersona, LEVELS, MICRO_GOALS, projectSavings, formatMoney, useSavetrip, type Persona } from "@/lib/savetrip";
 import { getInvestmentPlan } from "@/lib/investmentPlans";
@@ -42,10 +43,10 @@ function MarkIcon({ icon: Icon, tone = "mint" }: { icon: typeof Home; tone?: str
 }
 
 export function AppShell({ children, title, eyebrow, action }: { children: React.ReactNode; title: string; eyebrow?: string; action?: React.ReactNode }) {
-  const { user } = useSavetrip();
+  const { user, authLoading } = useSavetrip();
   const navigate = useNavigate();
   const [showAdd, setShowAdd] = useState(false);
-  useEffect(() => { if (!user.isLoggedIn) navigate("/login", { replace: true }); else if (!user.emailVerified) navigate("/verify", { replace: true }); }, [user.isLoggedIn, user.emailVerified, navigate]);
+  useEffect(() => { if (authLoading) return; if (!user.isLoggedIn) navigate("/login", { replace: true }); else if (!user.emailVerified) navigate(`/verify?email=${encodeURIComponent(user.email)}`, { replace: true }); }, [authLoading, user.isLoggedIn, user.emailVerified, user.email, navigate]);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const currentLevel = getLevel(user.xp);
 
@@ -118,8 +119,8 @@ const onboardingQuestions = [
 ];
 
 export function Onboarding() {
-  const navigate = useNavigate(); const { user, completeOnboarding } = useSavetrip(); const [step, setStep] = useState(0); const [answers, setAnswers] = useState<Record<string, string>>(user.quizAnswers); const [showResult, setShowResult] = useState(false);
-  useEffect(() => { if (!user.isLoggedIn) navigate("/login", { replace: true }); else if (!user.emailVerified) navigate("/verify", { replace: true }); else if (user.onboardingCompleted && !showResult) navigate("/dashboard", { replace: true }); }, [user.isLoggedIn, user.emailVerified, user.onboardingCompleted, showResult, navigate]);
+  const navigate = useNavigate(); const { user, authLoading, completeOnboarding } = useSavetrip(); const [step, setStep] = useState(0); const [answers, setAnswers] = useState<Record<string, string>>(user.quizAnswers); const [showResult, setShowResult] = useState(false);
+  useEffect(() => { if (authLoading) return; if (!user.isLoggedIn) navigate("/login", { replace: true }); else if (!user.emailVerified) navigate(`/verify?email=${encodeURIComponent(user.email)}`, { replace: true }); else if (user.onboardingCompleted && !showResult) navigate("/dashboard", { replace: true }); }, [authLoading, user.isLoggedIn, user.emailVerified, user.email, user.onboardingCompleted, showResult, navigate]);
   const question = onboardingQuestions[step]; const selected = answers[question.key];
   const choose = (answer: string) => setAnswers((current) => ({ ...current, [question.key]: answer }));
   const finish = () => { const persona = getPersona(answers); completeOnboarding({ persona, name: user.name || "Max", age: answers.age === "25–34" ? 29 : 22, currentSavings: answers.savings === "Not yet" ? 0 : 15000, monthlyContribution: answers.monthly === "Not yet" ? 500 : answers.monthly === "$1k–$2.5k" ? 2000 : 1000 }, answers); setShowResult(true); };
